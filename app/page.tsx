@@ -1,65 +1,184 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Plus, Trash2, CheckCircle2, Circle, Loader2, ListTodo } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: string;
+}
 
 export default function Home() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTitle, setNewTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("/api/tasks");
+      const data = await res.json();
+      setTasks(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    setIsAdding(true);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      const task = await res.json();
+      setTasks([task, ...tasks]);
+      setNewTitle("");
+    } catch (error) {
+      console.error("Failed to add task:", error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const toggleTask = async (task: Task) => {
+    try {
+      const updated = { ...task, completed: !task.completed };
+      setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
+
+      await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: !task.completed }),
+      });
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      fetchTasks(); // Rollback
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    try {
+      setTasks(tasks.filter((t) => t.id !== id));
+      await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      fetchTasks(); // Rollback
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-8">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg bg-white rounded-3xl shadow-xl shadow-slate-200 overflow-hidden"
+      >
+        <div className="bg-indigo-600 p-8 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <ListTodo className="h-8 w-8" />
+            <h1 className="text-3xl font-bold tracking-tight">TaskFlow</h1>
+          </div>
+          <p className="text-indigo-100 opacity-90">Manage your daily tasks efficiently.</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <div className="p-8">
+          <form onSubmit={addTask} className="flex gap-3 mb-8">
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="What needs to be done?"
+              className="flex-1 px-5 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-slate-400"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button
+              disabled={isAdding || !newTitle.trim()}
+              className="bg-indigo-600 text-white p-3 rounded-2xl hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center min-w-[3.5rem]"
+            >
+              {isAdding ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Plus className="h-6 w-6" />
+              )}
+            </button>
+          </form>
+
+          <div className="space-y-3">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-4">
+                <Loader2 className="h-10 w-10 animate-spin" />
+                <p>Loading your tasks...</p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                <p>No tasks yet. Add one above!</p>
+              </div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {tasks.map((task) => (
+                  <motion.div
+                    key={task.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="group flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-indigo-100 hover:shadow-md hover:shadow-indigo-50/50 transition-all hover:-translate-y-0.5"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <button
+                        onClick={() => toggleTask(task)}
+                        className={`transition-colors ${
+                          task.completed ? "text-green-500" : "text-slate-300 hover:text-indigo-400"
+                        }`}
+                      >
+                        {task.completed ? (
+                          <CheckCircle2 className="h-6 w-6" />
+                        ) : (
+                          <Circle className="h-6 w-6" />
+                        )}
+                      </button>
+                      <span
+                        className={`text-lg font-medium transition-all ${
+                          task.completed ? "text-slate-400 line-through" : "text-slate-700"
+                        }`}
+                      >
+                        {task.title}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
+          </div>
         </div>
-      </main>
+        
+        <div className="bg-slate-50 p-6 text-center text-sm text-slate-500 border-t border-slate-100">
+          {tasks.length > 0 && (
+            <p>
+              {tasks.filter(t => t.completed).length} of {tasks.length} tasks completed
+            </p>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }
