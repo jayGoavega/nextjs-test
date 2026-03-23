@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, CheckCircle2, Circle, Loader2, ListTodo } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface Task {
   id: string;
@@ -82,11 +81,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-8">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg bg-white rounded-3xl shadow-xl shadow-slate-200 overflow-hidden"
-      >
+      <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl shadow-slate-200 overflow-hidden animate-fade-in">
         <div className="bg-indigo-600 p-8 text-white">
           <div className="flex items-center gap-3 mb-2">
             <ListTodo className="h-8 w-8" />
@@ -127,15 +122,11 @@ export default function Home() {
                 <p>No tasks yet. Add one above!</p>
               </div>
             ) : (
-              <AnimatePresence mode="popLayout">
-                {tasks.map((task) => (
-                  <motion.div
+              <>
+                {tasks.map((task: Task) => (
+                  <div
                     key={task.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="group flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-indigo-100 hover:shadow-md hover:shadow-indigo-50/50 transition-all hover:-translate-y-0.5"
+                    className="group flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-indigo-100 hover:shadow-md hover:shadow-indigo-50/50 transition-all hover:-translate-y-0.5 animate-fade-in"
                   >
                     <div className="flex items-center gap-4 flex-1">
                       <button
@@ -164,9 +155,9 @@ export default function Home() {
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
-                  </motion.div>
+                  </div>
                 ))}
-              </AnimatePresence>
+              </>
             )}
           </div>
         </div>
@@ -178,7 +169,7 @@ export default function Home() {
             </p>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
