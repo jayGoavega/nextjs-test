@@ -4,9 +4,8 @@ env:
   variables:
     AWS_DEFAULT_REGION: "ap-south-1"
     ECR_REPO_NAME: "nextjs-test-app"
-  # Secrets stored in AWS Systems Manager Parameter Store (recommended)
-  # parameter-store:
-  #   DATABASE_URL: "/nextjs-test-app/DATABASE_URL"
+  parameter-store:
+    DATABASE_URL: "postgresql://postgres:loveMyself007$@database-1.c5u6eoqy2ukn.ap-south-1.rds.amazonaws.com:5432/postgres?schema=public&sslmode=require"
 
 phases:
   pre_build:
