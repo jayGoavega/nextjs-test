@@ -1,52 +1,40 @@
-# Stage 1: Install dependencies
+# Stage 1: Dependencies
 FROM node:22-slim AS deps
 WORKDIR /app
 
-# Install OpenSSL (required for Prisma)
+# Install OpenSSL for Prisma
 RUN apt-get update -y && apt-get install -y openssl
 
 COPY package.json yarn.lock ./
+COPY prisma ./prisma/
 RUN yarn install --frozen-lockfile
-
 
 # Stage 2: Build
 FROM node:22-slim AS builder
 WORKDIR /app
-
-# Install OpenSSL
 RUN apt-get update -y && apt-get install -y openssl
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client
 RUN npx prisma generate
-
-# Build Next.js
 RUN yarn build
 
-
-# Stage 3: Run
+# Stage 3: Run (Full Image)
 FROM node:22-slim AS runner
 WORKDIR /app
 
-# Install OpenSSL (IMPORTANT for runtime)
-RUN apt-get update -y && apt-get install -y openssl
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
+# Critical: Next.js needs to know it's in a container
 ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+ENV HOSTNAME="0.0.0.0"
 
-# Copy standalone build
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-
-# Prisma runtime files
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy EVERYTHING from the builder
+COPY --from=builder /app ./
 
 EXPOSE 3000
 
-# Start server
-CMD ["node", "server.js"]
+# Use the standard Next.js start command
+CMD ["yarn", "next", "start"]
