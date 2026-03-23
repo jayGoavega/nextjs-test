@@ -48,4 +48,4 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 EXPOSE 3000
 
 # Start server
-CMD ["yarn", "start"]
+CMD ["node", "server.js"]
