@@ -1,0 +1,38 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: "ap-south-1"
+    ECR_REPO_NAME: "nextjs-test-app"
+  # Secrets stored in AWS Systems Manager Parameter Store (recommended)
+  # parameter-store:
+  #   DATABASE_URL: "/nextjs-test-app/DATABASE_URL"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - ECR_URI=$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - echo "Building image $ECR_URI:$IMAGE_TAG"
+
+  build:
+    commands:
+      - echo Building Docker image...
+      - docker build --platform linux/amd64 -t $ECR_REPO_NAME .
+      - docker tag $ECR_REPO_NAME:latest $ECR_URI:latest
+      - docker tag $ECR_REPO_NAME:latest $ECR_URI:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo Pushing image to ECR...
+      - docker push $ECR_URI:latest
+      - docker push $ECR_URI:$IMAGE_TAG
+      - echo Build completed. Image pushed to $ECR_URI:$IMAGE_TAG
+      - printf '[{"name":"nextjs-test-app","imageUri":"%s"}]' $ECR_URI:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
