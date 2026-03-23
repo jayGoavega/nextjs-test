@@ -4,8 +4,7 @@ env:
   variables:
     AWS_DEFAULT_REGION: "ap-south-1"
     ECR_REPO_NAME: "nextjs-test-app"
-  parameter-store:
-    DATABASE_URL: "postgresql://postgres:loveMyself007$@database-1.c5u6eoqy2ukn.ap-south-1.rds.amazonaws.com:5432/postgres?schema=public&sslmode=require"
+    # DATABASE_URL is set in the CodeBuild project console under Environment > Additional configuration > Environment variables
 
 phases:
   pre_build:
