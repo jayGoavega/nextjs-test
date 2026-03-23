@@ -1,21 +1,29 @@
 # Stage 1: Install dependencies
 FROM node:22-alpine AS deps
 WORKDIR /app
+
+RUN apk add --no-cache openssl
+
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
-# Stage 2: Build the application
+# Stage 2: Build
 FROM node:22-alpine AS builder
 WORKDIR /app
+
+RUN apk add --no-cache openssl
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npx prisma generate
 RUN yarn build
 
-# Stage 3: Production runner
+# Stage 3: Run
 FROM node:22-alpine AS runner
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
 
